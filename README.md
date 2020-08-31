@@ -1,6 +1,6 @@
 # sem_mlm_brm
 
-Clone entire repository to run major file: [parallel_mod_mpi_cmd_submit](parallel_mod_mpi_cmd_submit.R)
+Clone entire repository and run major file: [parallel_mod_mpi_cmd_submit](parallel_mod_mpi_cmd_submit.R)
 
 File & folder descriptions:
 
