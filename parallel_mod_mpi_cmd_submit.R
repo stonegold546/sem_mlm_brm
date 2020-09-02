@@ -650,7 +650,7 @@ data.frame(item = X$item_n, response = X$response.01, t(G.cong.ln)) %>%
   theme(strip.background = element_blank())
 ggsave(paste0(print.images, "app_03_ppc_gauss_cong.pdf"), height = 4, width = 6)
 
-# More efficient estimation (of beta congeneric model) via marginal likelihood ----
+# More efficient estimation (of beta congeneric model) via "marginal likelihood" ----
 
 # Compile Stan model
 saveRDS(cmdstan_model(file.path(paste0(stan.scripts, "cong_ln_beta_sample_size_marg.stan"))),
