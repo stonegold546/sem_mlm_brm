@@ -2,3 +2,4 @@
 .RData
 .Rhistory
 .Rproj.user
+/summary_text/stan_scripts/*.rds
