@@ -4,3 +4,4 @@
 .Rproj.user
 /summary_text/stan_scripts/*
 !/summary_text/stan_scripts/*.stan
+/summary_text/text_clean/*
