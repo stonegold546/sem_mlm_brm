@@ -444,7 +444,7 @@ cong.pars.b.df$variable <- rownames(cong.pars.b.df)
 # Join lavaan and Bayes results
 cong.pars.b.df.joined <- cbind(
   cong.pars.b.df[, c(11, 1, 6, 4, 8)],
-  parameterEstimates(cong.cfa.b)[c(1:6, 14:19, 21:26), c(5, 9:10)])
+  parameterEstimates(cong.cfa.b)[c(14:19, 1:6, 21:26), c(5, 9:10)])
 # Rename columns
 names(cong.pars.b.df.joined) <-
   c("variable", "mean_Bayesian-multilevel-beta", "median", "lower_Bayesian-multilevel-beta",
