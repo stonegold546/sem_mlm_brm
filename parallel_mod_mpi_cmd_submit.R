@@ -650,6 +650,56 @@ data.frame(item = X$item_n, response = X$response.01, t(G.cong.ln)) %>%
   theme(strip.background = element_blank())
 ggsave(paste0(print.images, "app_03_ppc_gauss_cong.pdf"), height = 4, width = 6)
 
+# More efficient estimation (of beta congeneric model) via "marginal likelihood" ----
+
+# Compile Stan model
+saveRDS(cmdstan_model(file.path(paste0(stan.scripts, "cong_ln_beta_sample_size_marg.stan"))),
+        paste0(stan.scripts, "cong_ln_beta_sample_size_marg.rds"))
+(cong.mod.b.m <- readRDS(paste0(stan.scripts, "cong_ln_beta_sample_size_marg.rds")))
+# Same configuration settings as Gaussian model
+cong.fit.b.m <- cong.mod.b.m$sample(
+  data = data.b, seed = 12345, num_warmup = 1e3,
+  num_samples = 1e3, num_chains = 4, num_cores = 4)
+
+cong.fit.b.m$cmdstan_diagnose()
+cong.fit.b.m.rstan <- read_stan_csv(cong.fit.b.m$output_files())
+
+print(cong.fit.b.m.rstan, c("latent_mv"), include = FALSE)
+#               mean se_mean    sd    2.5%     25%     50%     75%   97.5% n_eff Rhat
+# alpha        -0.92    0.01  0.40   -1.72   -1.17   -0.92   -0.67   -0.10  3149    1
+# sigma_beta    0.88    0.01  0.32    0.47    0.67    0.81    1.01    1.69  2466    1
+# beta[1]       0.02    0.00  0.19   -0.35   -0.10    0.02    0.15    0.40  4635    1
+# beta[2]      -0.43    0.00  0.15   -0.73   -0.53   -0.43   -0.33   -0.13  4814    1
+# beta[3]      -1.22    0.00  0.12   -1.47   -1.30   -1.22   -1.14   -0.99  3406    1
+# beta[4]      -1.53    0.00  0.24   -2.00   -1.68   -1.52   -1.38   -1.06  5266    1
+# beta[5]      -0.53    0.00  0.14   -0.82   -0.63   -0.53   -0.44   -0.26  4052    1
+# beta[6]      -1.96    0.00  0.15   -2.25   -2.06   -1.96   -1.86   -1.66  4035    1
+# lambda[1]     1.66    0.00  0.16    1.36    1.54    1.65    1.76    2.00  2300    1
+# lambda[2]     1.34    0.00  0.12    1.11    1.25    1.33    1.41    1.59  4013    1
+# lambda[3]     0.95    0.00  0.10    0.77    0.88    0.94    1.01    1.14  3198    1
+# lambda[4]     2.24    0.00  0.17    1.92    2.12    2.23    2.35    2.60  4361    1
+# lambda[5]     1.17    0.00  0.12    0.95    1.09    1.17    1.25    1.43  2763    1
+# lambda[6]     1.23    0.00  0.11    1.02    1.15    1.22    1.30    1.47  3789    1
+# prec[1]       5.73    0.02  0.92    4.09    5.09    5.65    6.31    7.70  2830    1
+# prec[2]      10.80    0.03  1.67    7.75    9.61   10.71   11.88   14.28  4396    1
+# prec[3]      13.39    0.03  1.99    9.67   11.98   13.35   14.68   17.51  3930    1
+# prec[4]      69.13    0.66 21.13   35.96   54.05   66.48   81.41  116.92  1033    1
+# prec[5]       6.85    0.02  0.99    5.05    6.17    6.80    7.47    8.96  3819    1
+# prec[6]      17.80    0.05  2.96   12.49   15.73   17.61   19.64   24.14  3051    1
+# i_means[1]    0.51    0.00  0.05    0.41    0.47    0.51    0.54    0.60  4629    1
+# i_means[2]    0.39    0.00  0.04    0.32    0.37    0.39    0.42    0.47  4821    1
+# i_means[3]    0.23    0.00  0.02    0.19    0.21    0.23    0.24    0.27  3396    1
+# i_means[4]    0.18    0.00  0.03    0.12    0.16    0.18    0.20    0.26  5271    1
+# i_means[5]    0.37    0.00  0.03    0.31    0.35    0.37    0.39    0.44  4065    1
+# i_means[6]    0.12    0.00  0.02    0.10    0.11    0.12    0.14    0.16  3987    1
+# sigma[1]      0.19    0.00  0.01    0.17    0.18    0.19    0.20    0.22  2599    1
+# sigma[2]      0.14    0.00  0.01    0.12    0.14    0.14    0.15    0.17  4256    1
+# sigma[3]      0.11    0.00  0.01    0.10    0.10    0.11    0.12    0.13  3369    1
+# sigma[4]      0.05    0.00  0.01    0.03    0.04    0.05    0.05    0.07  1136    1
+# sigma[5]      0.17    0.00  0.01    0.15    0.17    0.17    0.18    0.20  3652    1
+# sigma[6]      0.08    0.00  0.01    0.06    0.07    0.08    0.08    0.10  2943    1
+# lp__       1454.85    0.59 19.22 1416.57 1441.84 1455.39 1468.12 1490.92  1063    1
+
 # R Session Info (Contains exact package versions and system information) ----
 sessionInfo()  # Output is truncated to highlight important elements
 # R version 3.6.0 (2019-04-26)

@@ -1,4 +1,6 @@
-// congeneric model (heteroskedastic) with log-normal loadings
+// congeneric with log-normal loadings
+// Distribution is beta, mean & sample size parameterization
+// Cov-mat decomp approach
 data {
   int<lower = 2> Np;
   int<lower = 1> Ni;
@@ -7,10 +9,10 @@ data {
   real<lower = 0> beta_scale;
   real lambda_median;
   real<lower = 0> lambda_scale;
-  real<lower = 0> sigma_scale;
   int<lower = 1, upper = Np> resp_id[N];
   int<lower = 1, upper = Ni> item_id[N];
   vector[N] y;
+  real scaler;
   int ret_yhat;
   int ret_ll;
 }
@@ -26,8 +28,8 @@ parameters {
   real<lower = 0> sigma_beta;
   vector[Ni] beta;
   vector<lower = 0>[Ni] lambda;
-  vector[Np] theta_p;
-  vector<lower = 0>[Ni] sigma;
+  vector<lower = 0>[Ni] prec;
+  vector[Ni] latent_mv[Np];
 }
 model {
   alpha ~ normal(0, alpha_scale);
@@ -35,30 +37,25 @@ model {
   beta ~ normal(alpha, sigma_beta);
 
   lambda ~ lognormal(lambda_median, lambda_scale);
-  theta_p ~ std_normal();
 
-  sigma ~ normal(0, sigma_scale);
+  prec ~ gamma(2, .1);
 
   {
-    vector[N] sigma_y;
-    vector[N] mu;
-    for (i in 1:N) {
-      sigma_y[i] = sigma[item_id[i]];
-      mu[i] = beta[item_id[i]] + lambda[item_id[i]] * theta_p[resp_id[i]];
-    }
-    y ~ normal(mu, sigma_y);
+    matrix[Ni, Ni] Sigma = tcrossprod(to_matrix(lambda)) + diag_matrix(rep_vector(.01, Ni));
+    vector[N] prob;
+
+    latent_mv ~ multi_normal(beta, Sigma);
+    for (i in 1:N) prob[i] = inv_logit(latent_mv[resp_id[i], item_id[i]]);
+    y ~ beta_proportion(prob, prec[item_id]);
   }
 }
 generated quantities {
-  vector[Nll] log_lik;
-  vector[Ny] yhat;
+  vector[Ni] i_means;
+  vector[Ni] sigma;
 
   {
-    real mu;
-    for (i in 1:max(Nll, Ny)) {
-      mu = beta[item_id[i]] + lambda[item_id[i]] * theta_p[resp_id[i]];
-      if (Nll > 0) log_lik[i] = normal_lpdf(y[i] | mu, sigma[item_id[i]]);
-      if (Ny > 0) yhat[i] = normal_rng(mu, sigma[item_id[i]]);
-    }
+    vector[Ni] p = inv_logit(beta);
+    i_means = p * scaler;
+    sigma = sqrt(p .* (1 - p) ./ (prec + 1)) * scaler;
   }
 }
