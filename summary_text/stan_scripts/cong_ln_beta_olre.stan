@@ -42,7 +42,7 @@ model {
   lambda ~ lognormal(lambda_median, lambda_scale);
   theta_p ~ std_normal();
 
-  olre_sd ~ lognormal(lambda_median, lambda_scale);
+  olre_sd ~ student_t(3, 0, 1);
   nu ~ gamma(2, .1);
   tau ~ gamma(nu / 2, nu / 2);
   olre ~ std_normal();

@@ -134,6 +134,9 @@ ggsave(paste0(print.images, "03_beta_dist_ex.pdf"), width = 6.5, height = 4)
 (te.reg.beta <- glmmTMB(
   response.01 ~ 0 + item_t + (1 | id), X, beta_family(),
   dispformula = ~ 0 + item_t))
+(glmmTMB(
+  response.01 ~ 0 + item_t + (1 | id) + (1 | c(1:603)), X, beta_family(),
+  dispformula = ~ 0 + item_t))
 
 # Indicators means from both models
 # Note inv. logit transformation for beta means:
@@ -363,7 +366,7 @@ summary(cong.cfa.b <- cfa(
   fit.measures = TRUE, standardize = TRUE)
 
 # Congeneric regression in Stan (beta dist.) ----
-# Data list with references to equation 10
+# Data list with references to equation 11
 data.b <- list(
   alpha_scale = 5 / qnorm(.975),  # scale of a parameter
   beta_scale = 2 / qnorm(.975),  # scale of sigma_t
@@ -432,82 +435,48 @@ cong.mod.b.olre <- cmdstan_model(file.path(paste0(stan.scripts, "cong_ln_beta_ol
 cong.fit.b.olre <- cong.mod.b.olre$sample(
   data = data.b, seed = 12345, iter_warmup = 1e3,
   iter_sampling = 3e3, chains = 8, parallel_chains = 8,
-  max_treedepth = 15)
+  max_treedepth = 15, adapt_delta = .99)
 
 cong.fit.b.olre$cmdstan_diagnose()
-# The E-BFMI, 0.11788, is below the nominal threshold of 0.3 which suggests that
+# The E-BFMI, 0.122475, is below the nominal threshold of 0.3 which suggests that
 # HMC may have trouble exploring the target distribution.
 cong.fit.b.olre.rs <- read_stan_csv(cong.fit.b.olre$output_files())
 
-print(cong.fit.b.olre.rs, c("theta_p", "yhat", "olre", "lp__"), include = FALSE)
-#              mean se_mean    sd  2.5%   25%    50%    75%  97.5% n_eff Rhat
-# alpha       -1.05    0.01  0.44 -1.91 -1.33  -1.06  -0.78  -0.17  7077 1.00
-# sigma_beta   0.96    0.00  0.31  0.53  0.74   0.91   1.12   1.71 18248 1.00
-# beta[1]      0.06    0.01  0.26 -0.45 -0.11   0.06   0.23   0.56  1735 1.00
-# beta[2]     -0.56    0.00  0.17 -0.90 -0.68  -0.56  -0.45  -0.23  1716 1.00
-# beta[3]     -1.36    0.00  0.13 -1.62 -1.45  -1.36  -1.27  -1.10  2058 1.00
-# beta[4]     -1.61    0.01  0.23 -2.08 -1.76  -1.61  -1.45  -1.15  1524 1.00
-# beta[5]     -0.70    0.00  0.17 -1.04 -0.81  -0.69  -0.58  -0.36  1829 1.00
-# beta[6]     -2.29    0.00  0.17 -2.63 -2.40  -2.29  -2.17  -1.95  1672 1.00
-# lambda[1]    2.26    0.00  0.21  1.88  2.12   2.25   2.39   2.69  3099 1.00
-# lambda[2]    1.55    0.00  0.13  1.31  1.46   1.55   1.64   1.84  3185 1.00
-# lambda[3]    1.05    0.00  0.11  0.85  0.98   1.05   1.12   1.28  3503 1.00
-# lambda[4]    2.31    0.00  0.18  1.99  2.19   2.30   2.42   2.68  2580 1.00
-# lambda[5]    1.48    0.00  0.14  1.22  1.38   1.48   1.57   1.78  3384 1.00
-# lambda[6]    1.56    0.00  0.14  1.31  1.47   1.56   1.65   1.85  2355 1.00
-# prec       109.97    1.01 27.95 62.37 90.30 107.55 126.87 171.88   772 1.02
-# nu          20.24    0.10 14.03  2.91  9.93  17.03  27.14  55.63 19679 1.00
-# tau          0.91    0.00  0.34  0.34  0.68   0.88   1.10   1.66  6058 1.00
-# olre_sd[1]   1.12    0.00  0.24  0.67  0.96   1.11   1.26   1.60  4744 1.00
-# olre_sd[2]   0.68    0.00  0.15  0.41  0.59   0.68   0.77   0.98  5105 1.00
-# olre_sd[3]   0.70    0.00  0.15  0.42  0.60   0.69   0.79   1.00  4205 1.00
-# olre_sd[4]   0.29    0.00  0.13  0.07  0.20   0.28   0.38   0.56  1235 1.01
-# olre_sd[5]   0.87    0.00  0.18  0.52  0.75   0.86   0.98   1.24  5104 1.00
-# olre_sd[6]   0.55    0.00  0.12  0.32  0.47   0.55   0.63   0.81  4269 1.00
-# i_means[1]   0.51    0.00  0.06  0.39  0.47   0.51   0.56   0.64  1734 1.00
-# i_means[2]   0.36    0.00  0.04  0.29  0.34   0.36   0.39   0.44  1715 1.00
-# i_means[3]   0.20    0.00  0.02  0.17  0.19   0.20   0.22   0.25  2054 1.00
-# i_means[4]   0.17    0.00  0.03  0.11  0.15   0.17   0.19   0.24  1521 1.00
-# i_means[5]   0.33    0.00  0.04  0.26  0.31   0.33   0.36   0.41  1829 1.00
-# i_means[6]   0.09    0.00  0.01  0.07  0.08   0.09   0.10   0.12  1664 1.00
+print(cong.fit.b.olre.rs, c("theta_p", "yhat", "olre", "lp__"), include = FALSE, digits_summary = 4)
+#                mean se_mean      sd    2.5%     25%      50%      75%    97.5% n_eff   Rhat
+# alpha       -1.0525  0.0043  0.4399 -1.9136 -1.3310  -1.0628  -0.7790  -0.1581 10631 1.0003
+# sigma_beta   0.9589  0.0023  0.3030  0.5371  0.7415   0.9019   1.1126   1.6996 17515 1.0000
+# beta[1]      0.0612  0.0042  0.2526 -0.4253 -0.1062   0.0592   0.2278   0.5696  3641 1.0035
+# beta[2]     -0.5639  0.0030  0.1701 -0.8983 -0.6782  -0.5644  -0.4507  -0.2268  3287 1.0036
+# beta[3]     -1.3612  0.0021  0.1310 -1.6192 -1.4493  -1.3615  -1.2728  -1.1039  4027 1.0027
+# beta[4]     -1.6094  0.0044  0.2328 -2.0658 -1.7660  -1.6109  -1.4529  -1.1523  2857 1.0043
+# beta[5]     -0.6923  0.0030  0.1754 -1.0353 -0.8096  -0.6934  -0.5765  -0.3435  3393 1.0044
+# beta[6]     -2.2885  0.0031  0.1719 -2.6265 -2.4036  -2.2867  -2.1736  -1.9521  3004 1.0036
+# lambda[1]    2.2543  0.0026  0.2038  1.8901  2.1117   2.2434   2.3845   2.6851  6063 1.0009
+# lambda[2]    1.5513  0.0018  0.1344  1.3054  1.4572   1.5458   1.6382   1.8320  5717 1.0011
+# lambda[3]    1.0512  0.0014  0.1098  0.8492  0.9754   1.0460   1.1222   1.2792  6276 1.0009
+# lambda[4]    2.3106  0.0026  0.1744  1.9955  2.1893   2.3012   2.4216   2.6806  4598 1.0014
+# lambda[5]    1.4824  0.0018  0.1427  1.2226  1.3836   1.4755   1.5736   1.7801  6081 1.0008
+# lambda[6]    1.5614  0.0022  0.1375  1.3126  1.4652   1.5554   1.6504   1.8499  3786 1.0013
+# prec       111.4518  0.9508 28.1253 64.6501 91.4872 108.3350 128.3932 174.6634   875 1.0096
+# nu          20.8983  0.0882 14.0566  3.0006 10.6050  17.7952  27.8835  56.0275 25372 1.0000
+# tau          1.1261  0.0036  0.3920  0.5384  0.8715   1.0719   1.3076   2.0662 12064 1.0003
+# olre_sd[1]   1.2528  0.0024  0.2367  0.8420  1.0942   1.2324   1.3894   1.7740 10038 1.0006
+# olre_sd[2]   0.7690  0.0013  0.1464  0.5138  0.6711   0.7578   0.8527   1.0907 11929 1.0004
+# olre_sd[3]   0.7836  0.0017  0.1506  0.5219  0.6823   0.7719   0.8698   1.1234  8180 1.0010
+# olre_sd[4]   0.3235  0.0043  0.1553  0.0315  0.2167   0.3249   0.4273   0.6316  1322 1.0045
+# olre_sd[5]   0.9736  0.0017  0.1830  0.6537  0.8503   0.9577   1.0794   1.3752 11096 1.0004
+# olre_sd[6]   0.6243  0.0014  0.1269  0.4031  0.5382   0.6130   0.6985   0.9074  8069 1.0012
+# i_means[1]   0.5151  0.0010  0.0621  0.3952  0.4735   0.5148   0.5567   0.6387  3636 1.0035
+# i_means[2]   0.3635  0.0007  0.0391  0.2894  0.3367   0.3625   0.3892   0.4436  3272 1.0036
+# i_means[3]   0.2049  0.0003  0.0213  0.1653  0.1901   0.2040   0.2188   0.2490  4009 1.0027
+# i_means[4]   0.1692  0.0006  0.0327  0.1125  0.1460   0.1665   0.1895   0.2401  2831 1.0044
+# i_means[5]   0.3346  0.0007  0.0388  0.2621  0.3080   0.3333   0.3597   0.4150  3403 1.0043
+# i_means[6]   0.0931  0.0003  0.0145  0.0675  0.0829   0.0922   0.1021   0.1243  2959 1.0036
 
 mcmc_trace(cong.fit.b.olre.rs, regex_pars = c("i_means", "lambda"))
 mcmc_rank_overlay(
   cong.fit.b.olre.rs, regex_pars = c("i_means", "lambda"), ref_line = TRUE)
-
-# FIGURE 10 ----
-# Extract predicted outcomes: 100 samples randomly drawn from 24000 samples
-G.cong.beta <- as.data.frame(cong.fit.b.rs, "yhat")
-# Should be 100 samples by 603 responses
-dim(G.cong.beta <- G.cong.beta[sample(1:nrow(G.cong.beta), 100), ])
-G.cong.beta <- data.frame(item = X$item_n, response = X$response.01, t(G.cong.beta)) %>%
-  pivot_longer(contains("X"), names_pattern = "X(.*)")
-
-G.cong.beta %>%
-  ggplot(aes(response)) + facet_wrap(~ item, scales = "free") +
-  scale_x_continuous(labels = percent_format(), name = "Distribution of prevalence") +
-  geom_density(aes(value, group = name), fill = NA, col = "darkgrey") +
-  geom_density(col = 1, fill = NA, data = filter(G.cong.beta, name == min(as.integer(name)))) +
-  theme_classic() +
-  theme(strip.background = element_blank())
-ggsave(paste0(print.images, "10_cong_eff_beta_ppc.pdf"), width = 6.5, height = 4)
-
-# FIGURE 10a ----
-# Extract predicted outcomes: 100 samples randomly drawn from 24000 samples
-G.cong.beta.olre <- as.data.frame(cong.fit.b.olre.rs, "yhat")
-# Should be 100 samples by 603 responses
-dim(G.cong.beta.olre <- G.cong.beta.olre[sample(1:nrow(G.cong.beta.olre), 100), ])
-G.cong.beta.olre <- data.frame(item = X$item_n, response = X$response.01, t(G.cong.beta.olre)) %>%
-  pivot_longer(contains("X"), names_pattern = "X(.*)")
-
-G.cong.beta.olre %>%
-  ggplot(aes(response)) + facet_wrap(~ item, scales = "free") +
-  scale_x_continuous(labels = percent_format(), name = "Distribution of prevalence") +
-  geom_density(aes(value, group = name), fill = NA, col = "darkgrey") +
-  geom_density(col = 1, fill = NA, data = filter(G.cong.beta.olre, name == min(as.integer(name)))) +
-  theme_classic() +
-  theme(strip.background = element_blank())
-ggsave(paste0(print.images, "10a_cong_eff_beta_ppc.pdf"), width = 6.5, height = 4)
 
 # FIGURE 9 ----
 # Join lavaan and Bayes results
@@ -554,6 +523,23 @@ cong.pars.b.df.joined %>%
     caption = paste0(fig.capt, "\n",
                      "Quantile interval for Bayesian model, and bootstrap intervals for lavaan model"))
 ggsave(paste0(print.images, "09_cong_params_lav_bayes_beta.pdf"), width = 6.5, height = 5.5)
+
+# FIGURE 10 ----
+# Extract predicted outcomes: 100 samples randomly drawn from 24000 samples
+G.cong.beta.olre <- as.data.frame(cong.fit.b.olre.rs, "yhat")
+# Should be 100 samples by 603 responses
+dim(G.cong.beta.olre <- G.cong.beta.olre[sample(1:nrow(G.cong.beta.olre), 100), ])
+G.cong.beta.olre <- data.frame(item = X$item_n, response = X$response.01, t(G.cong.beta.olre)) %>%
+  pivot_longer(contains("X"), names_pattern = "X(.*)")
+
+G.cong.beta.olre %>%
+  ggplot(aes(response)) + facet_wrap(~ item, scales = "free") +
+  scale_x_continuous(labels = percent_format(), name = "Distribution of prevalence") +
+  geom_density(aes(value, group = name), fill = NA, col = "darkgrey") +
+  geom_density(col = 1, fill = NA, data = filter(G.cong.beta.olre, name == min(as.integer(name)))) +
+  theme_classic() +
+  theme(strip.background = element_blank())
+ggsave(paste0(print.images, "10_cong_eff_beta_ppc.pdf"), width = 6.5, height = 4)
 
 # FIGURE 11 ----
 # Extract item means
@@ -626,11 +612,12 @@ fig.capt <-
   "Indicator codes: 1 = Cooking fuel, 2 = Sanitation, 3 = Drinking water, 4 = Electricity, 5 = Housing, 6 = Assets"
 cong.pars.b.df.2.res %>%
   ggplot(aes(theta * -1, prob, group = name, label = item)) +
-  geom_line(aes(alpha = lambda)) + geom_rug(y = NA, alpha = .1) +
+  geom_line(aes(alpha = lambda, size = lambda)) + geom_rug(y = NA, alpha = .1) +
   geom_dl(aes(alpha = lambda), method = "first.points",
           data = filter(cong.pars.b.df.2.res, item %in% c(1, 2, 3, 5, 6))) +
   geom_dl(aes(alpha = lambda), method = "last.points", data = filter(cong.pars.b.df.2.res, item == 4)) +
-  scale_alpha(range = c(.2, 1)) + guides(alpha = FALSE) +
+  scale_alpha(range = c(.2, 1)) + scale_size(range = c(.25, 1)) +
+  guides(alpha = FALSE, size = FALSE) +
   scale_y_continuous(labels = percent_format()) +
   theme(panel.grid.minor.y = element_blank(), axis.title.y = element_blank()) +
   labs(title = "Expected prevalence of deprivation by indicator",
@@ -682,10 +669,10 @@ ggsave(paste0(print.images, "13_bottom_30_cong_beta.pdf"), width = 6.5, height =
 # Comparing country 81 and 82 posterior averages
 theta.9581 <- as.data.frame(cong.fit.b.olre.rs, c("theta_p[95]", "theta_p[81]"))
 mean(theta.9581[, 1] > theta.9581[, 2])
-# [1] 0.4683333
+# [1] 0.480875
 theta.8382 <- as.data.frame(cong.fit.b.olre.rs, c("theta_p[83]", "theta_p[82]"))
 mean(theta.8382[, 1] > theta.8382[, 2])  # 81 only marginally higher probability than 82
-# [1] 0.5225
+# [1] 0.5343333
 
 # APPENDIX CONTENT ----
 
@@ -713,6 +700,23 @@ G.cong.ln %>%
   theme_classic() +
   theme(strip.background = element_blank())
 ggsave(paste0(print.images, "app_03_ppc_gauss_cong.pdf"), height = 4, width = 6)
+
+# Posterior predictive for congeneric beta CFA (NO OLRE) as regression (Equation 9)
+# Extract predicted outcomes: 100 samples randomly drawn from 24000 samples
+G.cong.beta <- as.data.frame(cong.fit.b.rs, "yhat")
+# Should be 100 samples by 603 responses
+dim(G.cong.beta <- G.cong.beta[sample(1:nrow(G.cong.beta), 100), ])
+G.cong.beta <- data.frame(item = X$item_n, response = X$response.01, t(G.cong.beta)) %>%
+  pivot_longer(contains("X"), names_pattern = "X(.*)")
+
+G.cong.beta %>%
+  ggplot(aes(response)) + facet_wrap(~ item, scales = "free") +
+  scale_x_continuous(labels = percent_format(), name = "Distribution of prevalence") +
+  geom_density(aes(value, group = name), fill = NA, col = "darkgrey") +
+  geom_density(col = 1, fill = NA, data = filter(G.cong.beta, name == min(as.integer(name)))) +
+  theme_classic() +
+  theme(strip.background = element_blank())
+ggsave(paste0(print.images, "app_04_ppc_beta_cong.pdf"), width = 6.5, height = 4)
 
 # More efficient estimation (of beta congeneric model) via "marginal likelihood" ----
 
