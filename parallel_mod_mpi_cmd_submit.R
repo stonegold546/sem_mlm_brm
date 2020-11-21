@@ -507,11 +507,11 @@ cong.pars.b.df.joined %>%
     type == "Loadings" & method == "Lavaan" ~ "Loadings (lavaan)",
     type == "Loadings" & method != "Lavaan" ~ "Loadings (Bayes)",
     type == "Residual SD" & method == "Lavaan" ~ "Residual SD (lavaan)",
-    type == "Residual SD" & method != "Lavaan" ~ "Residual SD (Bayes)",
+    type == "Residual SD" & method != "Lavaan" ~ "Scale (Bayes)",
     TRUE ~ as.character(type)
   )) %>%
   mutate(type = factor(type, c("Loadings (Bayes)", "Loadings (lavaan)", "Prevalence",
-                               "Residual SD (Bayes)", "Residual SD (lavaan)"))) %>%
+                               "Scale (Bayes)", "Residual SD (lavaan)"))) %>%
   ggplot(aes(number, mean, fill = method, shape = method)) +
   geom_pointrange(aes(ymin = lower, ymax = upper), position = position_dodge(.5), alpha = .65) +
   theme_classic() + theme(legend.position = "top", strip.background = element_blank(),
