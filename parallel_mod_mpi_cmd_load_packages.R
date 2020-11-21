@@ -20,10 +20,11 @@ library(ggplot2)  # Plotting
 library(directlabels)  # Direct labeling of ggplots
 library(ggrepel)  # Labeling of lines on ggplot
 theme_set(theme_bw())  # ggplot label
+library(ggforce)  # Enhance ggplot2 functionalities
 
 # Load Stan
 library(bayesplot)  # Plotting aspects of Stan fit
 color_scheme_set("viridis")  # Color scheme for plots
 library(rstan)  # Load Rstan
 library(cmdstanr)  # Command Stan
-set_cmdstan_path("~/stanc3/cmdstan/")  # Command Stan path
+set_cmdstan_path("~/cmdstan/")  # Command Stan path

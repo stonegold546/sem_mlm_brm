@@ -134,6 +134,9 @@ ggsave(paste0(print.images, "03_beta_dist_ex.pdf"), width = 6.5, height = 4)
 (te.reg.beta <- glmmTMB(
   response.01 ~ 0 + item_t + (1 | id), X, beta_family(),
   dispformula = ~ 0 + item_t))
+(glmmTMB(
+  response.01 ~ 0 + item_t + (1 | id) + (1 | c(1:603)), X, beta_family(),
+  dispformula = ~ 0 + item_t))
 
 # Indicators means from both models
 # Note inv. logit transformation for beta means:
@@ -213,56 +216,51 @@ data <- list(
 )
 
 # Compile Stan model (takes time)
-# saveRDS(cmdstan_model(file.path(paste0(stan.scripts, "cong_ln_sz.stan"))),
-#         paste0(stan.scripts, "cong_ln_sz.rds"))
-# (cong.mod.ln.sz <- readRDS(paste0(stan.scripts, "cong_ln_sz.rds")))
-saveRDS(cmdstan_model(file.path(paste0(stan.scripts, "cong_ln.stan"))),
-        paste0(stan.scripts, "cong_ln.rds"))
-(cong.mod.ln <- readRDS(paste0(stan.scripts, "cong_ln.rds")))
+cong.mod.ln <- cmdstan_model(file.path(paste0(stan.scripts, "cong_ln.stan")))
 cong.fit.ln <- cong.mod.ln$sample(
   data = data,  # data list passed to Stan
   seed = 12345,  # Seed for reproducibility
-  num_warmup = 1e3,  # 1000 warmup samples per chain
-  num_samples = 3e3,  # 3000 samples for inference per chain
-  num_chains = 8,  # 8 chains
-  num_cores = 8  # 8 cores on multicore systems
+  iter_warmup = 1e3,  # 1000 warmup samples per chain
+  iter_sampling = 3e3,  # 3000 samples for inference per chain
+  chains = 8,  # 8 chains
+  parallel_chains = 8  # 8 cores on multicore systems
 )
 cong.fit.ln$cmdstan_diagnose()  # Run quick diagnostic checks
-cong.fit.ln.rstan <- read_stan_csv(cong.fit.ln$output_files())  # convert to Rstan
+cong.fit.ln.rs <- read_stan_csv(cong.fit.ln$output_files())  # convert to Rstan
 
 # Print major parameters
-print(cong.fit.ln.rstan, c("theta_p", "yhat"), include = FALSE)
-#              mean se_mean    sd   2.5%    25%    50%    75%  97.5% n_eff Rhat
-# alpha        0.34     0.0  0.07   0.21   0.30   0.34   0.38   0.48  8192 1.00
-# sigma_beta   0.15     0.0  0.06   0.08   0.11   0.14   0.18   0.31 15903 1.00
-# beta[1]      0.51     0.0  0.03   0.44   0.49   0.51   0.53   0.58  1592 1.01
-# beta[2]      0.42     0.0  0.03   0.36   0.40   0.42   0.43   0.47  1518 1.01
-# beta[3]      0.27     0.0  0.02   0.23   0.25   0.27   0.28   0.30  1642 1.01
-# beta[4]      0.31     0.0  0.03   0.25   0.29   0.31   0.33   0.37  1329 1.01
-# beta[5]      0.39     0.0  0.03   0.33   0.37   0.39   0.40   0.44  1743 1.01
-# beta[6]      0.17     0.0  0.02   0.14   0.16   0.17   0.19   0.21  1623 1.01
-# lambda[1]    0.30     0.0  0.02   0.25   0.28   0.29   0.31   0.35  4194 1.00
-# lambda[2]    0.25     0.0  0.02   0.21   0.23   0.25   0.26   0.29  4002 1.00
-# lambda[3]    0.16     0.0  0.01   0.13   0.15   0.16   0.17   0.19  4214 1.00
-# lambda[4]    0.29     0.0  0.02   0.25   0.28   0.29   0.30   0.33  2848 1.00
-# lambda[5]    0.23     0.0  0.02   0.19   0.22   0.23   0.25   0.28  4515 1.00
-# lambda[6]    0.15     0.0  0.01   0.13   0.14   0.15   0.16   0.18  4210 1.00
-# sigma[1]     0.17     0.0  0.01   0.14   0.16   0.17   0.18   0.20 23340 1.00
-# sigma[2]     0.14     0.0  0.01   0.12   0.13   0.14   0.15   0.17 24093 1.00
-# sigma[3]     0.10     0.0  0.01   0.09   0.10   0.10   0.11   0.12 26840 1.00
-# sigma[4]     0.09     0.0  0.01   0.07   0.08   0.09   0.10   0.11  6453 1.00
-# sigma[5]     0.16     0.0  0.01   0.13   0.15   0.15   0.16   0.18 21259 1.00
-# sigma[6]     0.09     0.0  0.01   0.08   0.09   0.09   0.10   0.11 26331 1.00
+print(cong.fit.ln.rs, c("theta_p", "yhat", "lp__"), include = FALSE)
+#            mean se_mean   sd 2.5%  25%  50%  75% 97.5% n_eff Rhat
+# alpha      0.34       0 0.07 0.21 0.30 0.34 0.38  0.48  7160 1.00
+# sigma_beta 0.15       0 0.06 0.08 0.11 0.14 0.17  0.30 16216 1.00
+# beta[1]    0.51       0 0.03 0.44 0.49 0.51 0.53  0.58  1481 1.01
+# beta[2]    0.42       0 0.03 0.36 0.40 0.42 0.44  0.47  1486 1.01
+# beta[3]    0.27       0 0.02 0.23 0.25 0.27 0.28  0.30  1565 1.01
+# beta[4]    0.31       0 0.03 0.25 0.29 0.31 0.33  0.37  1259 1.01
+# beta[5]    0.39       0 0.03 0.33 0.37 0.39 0.41  0.44  1571 1.01
+# beta[6]    0.17       0 0.02 0.14 0.16 0.17 0.19  0.21  1560 1.01
+# lambda[1]  0.29       0 0.02 0.25 0.28 0.29 0.31  0.35  3913 1.00
+# lambda[2]  0.25       0 0.02 0.21 0.23 0.25 0.26  0.29  3958 1.00
+# lambda[3]  0.16       0 0.01 0.13 0.15 0.16 0.17  0.19  4034 1.00
+# lambda[4]  0.29       0 0.02 0.25 0.27 0.29 0.30  0.33  2656 1.00
+# lambda[5]  0.23       0 0.02 0.19 0.22 0.23 0.25  0.28  4229 1.00
+# lambda[6]  0.15       0 0.01 0.13 0.14 0.15 0.16  0.18  3905 1.00
+# sigma[1]   0.17       0 0.01 0.14 0.16 0.17 0.18  0.20 25203 1.00
+# sigma[2]   0.14       0 0.01 0.12 0.13 0.14 0.15  0.17 26849 1.00
+# sigma[3]   0.10       0 0.01 0.09 0.10 0.10 0.11  0.12 29277 1.00
+# sigma[4]   0.09       0 0.01 0.07 0.08 0.09 0.10  0.11  7390 1.00
+# sigma[5]   0.16       0 0.01 0.13 0.15 0.15 0.16  0.18 24396 1.00
+# sigma[6]   0.09       0 0.01 0.08 0.09 0.09 0.10  0.11 29276 1.00
 
 # Traceplots:
-mcmc_trace(cong.fit.ln.rstan, regex_pars = c("alpha", "beta", "lambda", "sigma"))
+mcmc_trace(cong.fit.ln.rs, regex_pars = c("alpha", "beta", "lambda", "sigma"))
 # Rank plots:
 mcmc_rank_overlay(
-  cong.fit.ln.rstan, regex_pars = c("alpha", "beta", "lambda", "sigma"),
+  cong.fit.ln.rs, regex_pars = c("alpha", "beta", "lambda", "sigma"),
   ref_line = TRUE)
 # Summarize draws
 cong.pars.df <- as.data.frame(
-  summary(cong.fit.ln.rstan, c("beta", "lambda", "sigma"))$summary)
+  summary(cong.fit.ln.rs, c("beta", "lambda", "sigma"))$summary)
 # beta[1-6] are means
 # lambda[1-6] are loadings
 # sigma[1-6] are residual standard deviations
@@ -300,7 +298,7 @@ cong.pars.df.joined %>%
 ggsave(paste0(print.images, "06_cong_params_lav_bayes.pdf"), width = 6.5, height = 4)
 
 # FIGURE 7 ----
-cong.pars.df.2 <- as.data.frame(summary(cong.fit.ln.rstan, c("beta", "lambda", "theta_p"))$summary)
+cong.pars.df.2 <- as.data.frame(summary(cong.fit.ln.rs, c("beta", "lambda", "theta_p"))$summary)
 cong.pars.df.2 <- cong.pars.df.2[, c(1, 6)]
 cong.pars.df.2$variable <- rownames(cong.pars.df.2)
 cong.pars.df.2 <- as.data.table(cong.pars.df.2)
@@ -368,7 +366,7 @@ summary(cong.cfa.b <- cfa(
   fit.measures = TRUE, standardize = TRUE)
 
 # Congeneric regression in Stan (beta dist.) ----
-# Data list with references to equation 10
+# Data list with references to equation 11
 data.b <- list(
   alpha_scale = 5 / qnorm(.975),  # scale of a parameter
   beta_scale = 2 / qnorm(.975),  # scale of sigma_t
@@ -383,87 +381,137 @@ data.b <- list(
 )
 
 # Compile Stan model
-saveRDS(cmdstan_model(file.path(paste0(stan.scripts, "cong_ln_beta_sample_size.stan"))),
-        paste0(stan.scripts, "cong_ln_beta_sample_size.rds"))
-(cong.mod.b <- readRDS(paste0(stan.scripts, "cong_ln_beta_sample_size.rds")))
+cong.mod.b <- cmdstan_model(file.path(paste0(stan.scripts, "cong_ln_beta.stan")))
 # Same configuration settings as Gaussian model
 cong.fit.b <- cong.mod.b$sample(
-  data = data.b, seed = 12345, num_warmup = 1e3,
-  num_samples = 3e3, num_chains = 8, num_cores = 8)
+  data = data.b, seed = 12345, iter_warmup = 1e3,
+  iter_sampling = 3e3, chains = 8, parallel_chains = 8)
 
 cong.fit.b$cmdstan_diagnose()
-cong.fit.b.rstan <- read_stan_csv(cong.fit.b$output_files())
+cong.fit.b.rs <- read_stan_csv(cong.fit.b$output_files())
 
-print(cong.fit.b.rstan, c("theta_p", "yhat"), include = FALSE)
-#              mean se_mean    sd   2.5%    25%    50%    75%  97.5% n_eff Rhat
-# alpha       -0.92    0.01  0.40  -1.72  -1.17  -0.92  -0.68  -0.12  4421 1.00
-# sigma_beta   0.87    0.00  0.29   0.48   0.67   0.82   1.02   1.61 17545 1.00
-# beta[1]      0.02    0.01  0.19  -0.35  -0.11   0.02   0.14   0.38   921 1.02
-# beta[2]     -0.44    0.01  0.15  -0.73  -0.54  -0.43  -0.33  -0.15   851 1.02
-# beta[3]     -1.23    0.00  0.12  -1.46  -1.30  -1.22  -1.15  -1.00  1047 1.01
-# beta[4]     -1.53    0.01  0.23  -1.99  -1.69  -1.53  -1.37  -1.09   738 1.02
-# beta[5]     -0.54    0.00  0.14  -0.82  -0.63  -0.54  -0.44  -0.26  1018 1.01
-# beta[6]     -1.95    0.00  0.15  -2.24  -2.05  -1.95  -1.85  -1.67   991 1.01
-# lambda[1]    1.65    0.00  0.16   1.35   1.54   1.65   1.76   1.99  3411 1.00
-# lambda[2]    1.33    0.00  0.12   1.11   1.25   1.33   1.41   1.58  3010 1.00
-# lambda[3]    0.94    0.00  0.10   0.77   0.88   0.94   1.01   1.14  3483 1.00
-# lambda[4]    2.24    0.00  0.17   1.92   2.12   2.23   2.35   2.60  2046 1.00
-# lambda[5]    1.16    0.00  0.12   0.94   1.08   1.16   1.24   1.41  3733 1.00
-# lambda[6]    1.22    0.00  0.11   1.01   1.14   1.21   1.29   1.45  2981 1.00
-# prec[1]      5.67    0.01  0.91   4.03   5.04   5.62   6.25   7.62 18392 1.00
-# prec[2]     10.50    0.01  1.55   7.72   9.41  10.40  11.49  13.80 23372 1.00
-# prec[3]     13.08    0.01  1.89   9.64  11.78  12.98  14.28  17.07 21987 1.00
-# prec[4]     66.74    0.30 21.16  33.67  51.47  63.80  79.11 115.77  4898 1.00
-# prec[5]      6.66    0.01  0.96   4.91   5.99   6.59   7.26   8.71 22086 1.00
-# prec[6]     16.93    0.02  2.72  12.15  15.01  16.76  18.62  22.79 20913 1.00
-# i_means[1]   0.50    0.00  0.05   0.41   0.47   0.50   0.54   0.59   921 1.02
-# i_means[2]   0.39    0.00  0.04   0.32   0.37   0.39   0.42   0.46   845 1.02
-# i_means[3]   0.23    0.00  0.02   0.19   0.21   0.23   0.24   0.27  1035 1.01
-# i_means[4]   0.18    0.00  0.03   0.12   0.16   0.18   0.20   0.25   722 1.02
-# i_means[5]   0.37    0.00  0.03   0.31   0.35   0.37   0.39   0.44  1008 1.01
-# i_means[6]   0.13    0.00  0.02   0.10   0.11   0.12   0.14   0.16   965 1.01
-# sigma[1]     0.19    0.00  0.01   0.17   0.18   0.19   0.20   0.22 16957 1.00
-# sigma[2]     0.14    0.00  0.01   0.13   0.14   0.14   0.15   0.17  9882 1.00
-# sigma[3]     0.11    0.00  0.01   0.10   0.11   0.11   0.12   0.13  5165 1.00
-# sigma[4]     0.05    0.00  0.01   0.03   0.04   0.05   0.05   0.07  2651 1.01
-# sigma[5]     0.18    0.00  0.01   0.15   0.17   0.17   0.18   0.20  9887 1.00
-# sigma[6]     0.08    0.00  0.01   0.06   0.07   0.08   0.08   0.10  3184 1.00
+print(cong.fit.b.rs, c("theta_p", "yhat", "lp__"), include = FALSE)
+#             mean se_mean    sd  2.5%   25%   50%   75%  97.5% n_eff Rhat
+# alpha      -0.91    0.01  0.40 -1.70 -1.16 -0.91 -0.67  -0.10  5234    1
+# sigma_beta  0.88    0.00  0.29  0.48  0.67  0.82  1.03   1.61 18795    1
+# beta[1]     0.03    0.01  0.19 -0.33 -0.10  0.03  0.15   0.39  1043    1
+# beta[2]    -0.42    0.00  0.15 -0.72 -0.52 -0.42 -0.33  -0.13  1059    1
+# beta[3]    -1.22    0.00  0.12 -1.45 -1.30 -1.22 -1.14  -0.99  1250    1
+# beta[4]    -1.51    0.01  0.23 -1.96 -1.67 -1.51 -1.36  -1.06   885    1
+# beta[5]    -0.53    0.00  0.14 -0.81 -0.62 -0.53 -0.43  -0.24  1203    1
+# beta[6]    -1.94    0.00  0.15 -2.23 -2.04 -1.94 -1.84  -1.66  1189    1
+# lambda[1]   1.65    0.00  0.16  1.36  1.54  1.65  1.76   1.99  3468    1
+# lambda[2]   1.33    0.00  0.12  1.11  1.25  1.33  1.41   1.58  2979    1
+# lambda[3]   0.95    0.00  0.10  0.77  0.88  0.94  1.01   1.14  3622    1
+# lambda[4]   2.24    0.00  0.17  1.93  2.12  2.23  2.35   2.60  1964    1
+# lambda[5]   1.17    0.00  0.12  0.95  1.08  1.16  1.24   1.41  3717    1
+# lambda[6]   1.22    0.00  0.11  1.01  1.14  1.21  1.29   1.45  3043    1
+# prec[1]     5.67    0.01  0.91  4.07  5.03  5.60  6.24   7.61 20916    1
+# prec[2]    10.49    0.01  1.59  7.65  9.39 10.39 11.50  13.88 26728    1
+# prec[3]    13.10    0.01  1.91  9.66 11.77 12.98 14.32  17.14 28339    1
+# prec[4]    66.34    0.30 20.98 33.79 51.33 63.38 78.29 115.49  4997    1
+# prec[5]     6.66    0.01  0.97  4.91  5.98  6.60  7.29   8.71 25933    1
+# prec[6]    16.97    0.02  2.69 12.18 15.10 16.79 18.65  22.70 23136    1
+# i_means[1]  0.51    0.00  0.05  0.42  0.48  0.51  0.54   0.60  1043    1
+# i_means[2]  0.40    0.00  0.04  0.33  0.37  0.40  0.42   0.47  1053    1
+# i_means[3]  0.23    0.00  0.02  0.19  0.21  0.23  0.24   0.27  1236    1
+# i_means[4]  0.18    0.00  0.03  0.12  0.16  0.18  0.20   0.26   868    1
+# i_means[5]  0.37    0.00  0.03  0.31  0.35  0.37  0.39   0.44  1195    1
+# i_means[6]  0.13    0.00  0.02  0.10  0.12  0.13  0.14   0.16  1167    1
+# sigma[1]    0.19    0.00  0.01  0.17  0.18  0.19  0.20   0.22 19314    1
+# sigma[2]    0.14    0.00  0.01  0.13  0.14  0.14  0.15   0.17 13134    1
+# sigma[3]    0.11    0.00  0.01  0.10  0.11  0.11  0.12   0.13  7149    1
+# sigma[4]    0.05    0.00  0.01  0.03  0.04  0.05  0.05   0.07  2942    1
+# sigma[5]    0.18    0.00  0.01  0.15  0.17  0.17  0.18   0.20 10820    1
+# sigma[6]    0.08    0.00  0.01  0.06  0.07  0.08  0.08   0.10  3964    1
 
-mcmc_trace(cong.fit.b.rstan, regex_pars = c("i_means", "lambda", "sigma"))
+mcmc_trace(cong.fit.b.rs, regex_pars = c("i_means", "lambda", "sigma"))
 mcmc_rank_overlay(
-  cong.fit.b.rstan, regex_pars = c("i_means", "lambda", "sigma"), ref_line = TRUE)
+  cong.fit.b.rs, regex_pars = c("i_means", "lambda", "sigma"), ref_line = TRUE)
 
-cong.pars.b.df <- as.data.frame(
-  summary(cong.fit.b.rstan, c("i_means", "lambda", "sigma"))$summary)
-# i_means[1-6] are means on probability scale
-# lambda[1-6] are loadings
-# sigma[1-6] are residual standard deviations (probability scale)
-cong.pars.b.df$variable <- rownames(cong.pars.b.df)
+# Congeneric regression in Stan with OLRE (beta dist.) ----
+cong.mod.b.olre <- cmdstan_model(file.path(paste0(stan.scripts, "cong_ln_beta_olre.stan")))
+# Included maxtreedepth settings for convergence
+cong.fit.b.olre <- cong.mod.b.olre$sample(
+  data = data.b, seed = 12345, iter_warmup = 1e3,
+  iter_sampling = 3e3, chains = 8, parallel_chains = 8,
+  max_treedepth = 15, adapt_delta = .99)
+
+cong.fit.b.olre$cmdstan_diagnose()
+# The E-BFMI, 0.122475, is below the nominal threshold of 0.3 which suggests that
+# HMC may have trouble exploring the target distribution.
+cong.fit.b.olre.rs <- read_stan_csv(cong.fit.b.olre$output_files())
+
+print(cong.fit.b.olre.rs, c("theta_p", "yhat", "olre", "lp__"), include = FALSE, digits_summary = 4)
+#                mean se_mean      sd    2.5%     25%      50%      75%    97.5% n_eff   Rhat
+# alpha       -1.0525  0.0043  0.4399 -1.9136 -1.3310  -1.0628  -0.7790  -0.1581 10631 1.0003
+# sigma_beta   0.9589  0.0023  0.3030  0.5371  0.7415   0.9019   1.1126   1.6996 17515 1.0000
+# beta[1]      0.0612  0.0042  0.2526 -0.4253 -0.1062   0.0592   0.2278   0.5696  3641 1.0035
+# beta[2]     -0.5639  0.0030  0.1701 -0.8983 -0.6782  -0.5644  -0.4507  -0.2268  3287 1.0036
+# beta[3]     -1.3612  0.0021  0.1310 -1.6192 -1.4493  -1.3615  -1.2728  -1.1039  4027 1.0027
+# beta[4]     -1.6094  0.0044  0.2328 -2.0658 -1.7660  -1.6109  -1.4529  -1.1523  2857 1.0043
+# beta[5]     -0.6923  0.0030  0.1754 -1.0353 -0.8096  -0.6934  -0.5765  -0.3435  3393 1.0044
+# beta[6]     -2.2885  0.0031  0.1719 -2.6265 -2.4036  -2.2867  -2.1736  -1.9521  3004 1.0036
+# lambda[1]    2.2543  0.0026  0.2038  1.8901  2.1117   2.2434   2.3845   2.6851  6063 1.0009
+# lambda[2]    1.5513  0.0018  0.1344  1.3054  1.4572   1.5458   1.6382   1.8320  5717 1.0011
+# lambda[3]    1.0512  0.0014  0.1098  0.8492  0.9754   1.0460   1.1222   1.2792  6276 1.0009
+# lambda[4]    2.3106  0.0026  0.1744  1.9955  2.1893   2.3012   2.4216   2.6806  4598 1.0014
+# lambda[5]    1.4824  0.0018  0.1427  1.2226  1.3836   1.4755   1.5736   1.7801  6081 1.0008
+# lambda[6]    1.5614  0.0022  0.1375  1.3126  1.4652   1.5554   1.6504   1.8499  3786 1.0013
+# prec       111.4518  0.9508 28.1253 64.6501 91.4872 108.3350 128.3932 174.6634   875 1.0096
+# nu          20.8983  0.0882 14.0566  3.0006 10.6050  17.7952  27.8835  56.0275 25372 1.0000
+# tau          1.1261  0.0036  0.3920  0.5384  0.8715   1.0719   1.3076   2.0662 12064 1.0003
+# olre_sd[1]   1.2528  0.0024  0.2367  0.8420  1.0942   1.2324   1.3894   1.7740 10038 1.0006
+# olre_sd[2]   0.7690  0.0013  0.1464  0.5138  0.6711   0.7578   0.8527   1.0907 11929 1.0004
+# olre_sd[3]   0.7836  0.0017  0.1506  0.5219  0.6823   0.7719   0.8698   1.1234  8180 1.0010
+# olre_sd[4]   0.3235  0.0043  0.1553  0.0315  0.2167   0.3249   0.4273   0.6316  1322 1.0045
+# olre_sd[5]   0.9736  0.0017  0.1830  0.6537  0.8503   0.9577   1.0794   1.3752 11096 1.0004
+# olre_sd[6]   0.6243  0.0014  0.1269  0.4031  0.5382   0.6130   0.6985   0.9074  8069 1.0012
+# i_means[1]   0.5151  0.0010  0.0621  0.3952  0.4735   0.5148   0.5567   0.6387  3636 1.0035
+# i_means[2]   0.3635  0.0007  0.0391  0.2894  0.3367   0.3625   0.3892   0.4436  3272 1.0036
+# i_means[3]   0.2049  0.0003  0.0213  0.1653  0.1901   0.2040   0.2188   0.2490  4009 1.0027
+# i_means[4]   0.1692  0.0006  0.0327  0.1125  0.1460   0.1665   0.1895   0.2401  2831 1.0044
+# i_means[5]   0.3346  0.0007  0.0388  0.2621  0.3080   0.3333   0.3597   0.4150  3403 1.0043
+# i_means[6]   0.0931  0.0003  0.0145  0.0675  0.0829   0.0922   0.1021   0.1243  2959 1.0036
+
+mcmc_trace(cong.fit.b.olre.rs, regex_pars = c("i_means", "lambda"))
+mcmc_rank_overlay(
+  cong.fit.b.olre.rs, regex_pars = c("i_means", "lambda"), ref_line = TRUE)
 
 # FIGURE 9 ----
 # Join lavaan and Bayes results
+cong.pars.b.df <- as.data.frame(
+  summary(cong.fit.b.olre.rs, c("i_means", "lambda", "olre_sd"))$summary)
+# i_means[1-6] are means on probability scale
+# lambda[1-6] are loadings
+# olre_sd[1-6] are residual standard deviations
+cong.pars.b.df$variable <- rownames(cong.pars.b.df)
+
 cong.pars.b.df.joined <- cbind(
   cong.pars.b.df[, c(11, 1, 6, 4, 8)],
   parameterEstimates(cong.cfa.b)[c(14:19, 1:6, 21:26), c(5, 9:10)])
 # Rename columns
 names(cong.pars.b.df.joined) <-
-  c("variable", "mean_Bayesian-multilevel-beta", "median", "lower_Bayesian-multilevel-beta",
-    "upper_Bayesian-multilevel-beta", "mean_Lavaan", "lower_Lavaan", "upper_Lavaan")
-cong.pars.df.joined
+  c("variable", "mean_Bayesian-multilevel-beta (OLRE)", "median", "lower_Bayesian-multilevel-beta (OLRE)",
+    "upper_Bayesian-multilevel-beta (OLRE)", "mean_Lavaan", "lower_Lavaan", "upper_Lavaan")
+cong.pars.b.df.joined
 
 fig.capt <-
   "Indicator codes: 1 = Cooking fuel, 2 = Sanitation, 3 = Drinking water, 4 = Electricity, 5 = Housing, 6 = Assets"
 cong.pars.b.df.joined %>%
   pivot_longer(c(2, 4:8), names_pattern = "(.*)_(.*)", names_to = c(".value", "method")) %>%
   mutate(type = gsub("\\[[0-9]\\]", "", variable), number = gsub("_|[a-z]+|\\[|\\]", "", variable)) %>%
-  mutate(type = factor(type, levels = c("lambda", "i_means", "sigma"),
+  mutate(type = factor(type, levels = c("lambda", "i_means", "olre_sd"),
                        labels = c("Loadings", "Prevalence", "Residual SD"))) %>%
   mutate(type = case_when(
     type == "Loadings" & method == "Lavaan" ~ "Loadings (lavaan)",
     type == "Loadings" & method != "Lavaan" ~ "Loadings (Bayes)",
+    type == "Residual SD" & method == "Lavaan" ~ "Residual SD (lavaan)",
+    type == "Residual SD" & method != "Lavaan" ~ "Scale (Bayes)",
     TRUE ~ as.character(type)
   )) %>%
-  mutate(type = factor(type, c("Loadings (Bayes)", "Loadings (lavaan)", "Prevalence", "Residual SD"))) %>%
+  mutate(type = factor(type, c("Loadings (Bayes)", "Loadings (lavaan)", "Prevalence",
+                               "Scale (Bayes)", "Residual SD (lavaan)"))) %>%
   ggplot(aes(number, mean, fill = method, shape = method)) +
   geom_pointrange(aes(ymin = lower, ymax = upper), position = position_dodge(.5), alpha = .65) +
   theme_classic() + theme(legend.position = "top", strip.background = element_blank(),
@@ -478,23 +526,24 @@ ggsave(paste0(print.images, "09_cong_params_lav_bayes_beta.pdf"), width = 6.5, h
 
 # FIGURE 10 ----
 # Extract predicted outcomes: 100 samples randomly drawn from 24000 samples
-G.cong.beta <- as.data.frame(cong.fit.b.rstan, "yhat")
+G.cong.beta.olre <- as.data.frame(cong.fit.b.olre.rs, "yhat")
 # Should be 100 samples by 603 responses
-dim(G.cong.beta <- G.cong.beta[sample(1:nrow(G.cong.beta), 100), ])
+dim(G.cong.beta.olre <- G.cong.beta.olre[sample(1:nrow(G.cong.beta.olre), 100), ])
+G.cong.beta.olre <- data.frame(item = X$item_n, response = X$response.01, t(G.cong.beta.olre)) %>%
+  pivot_longer(contains("X"), names_pattern = "X(.*)")
 
-data.frame(item = X$item_n, response = X$response.01, t(G.cong.beta)) %>%
-  pivot_longer(contains("X"), names_pattern = "X(.*)") %>%
+G.cong.beta.olre %>%
   ggplot(aes(response)) + facet_wrap(~ item, scales = "free") +
   scale_x_continuous(labels = percent_format(), name = "Distribution of prevalence") +
   geom_density(aes(value, group = name), fill = NA, col = "darkgrey") +
-  geom_density(col = 1, fill = NA) +
+  geom_density(col = 1, fill = NA, data = filter(G.cong.beta.olre, name == min(as.integer(name)))) +
   theme_classic() +
   theme(strip.background = element_blank())
 ggsave(paste0(print.images, "10_cong_eff_beta_ppc.pdf"), width = 6.5, height = 4)
 
 # FIGURE 11 ----
 # Extract item means
-i.means.df <- as.data.frame(cong.fit.b.rstan, "i_means")
+i.means.df <- as.data.frame(cong.fit.b.olre.rs, "i_means")
 # Rank each row
 tmp.res <- apply(i.means.df, 1, rank)
 (tmp.res <- as.data.frame(t(apply(tmp.res, 1, function (row) {
@@ -517,7 +566,7 @@ plt.a <- tmp.res %>% pivot_longer(1:6) %>%
 plt.a
 
 # Extract loadings following same set-up as above:
-loads.df <- as.data.frame(cong.fit.b.rstan, "lambda")
+loads.df <- as.data.frame(cong.fit.b.olre.rs, "lambda")
 tmp.res <- apply(loads.df, 1, rank)
 (tmp.res <- as.data.frame(t(apply(tmp.res, 1, function (row) {
   sapply(1:max(tmp.res), function (i) sum(row == i))
@@ -541,7 +590,7 @@ ggsave(paste0(print.images, "11_rank_indicators.pdf"), width = 6.5, height = 4)
 
 # FIGURE 12 ----
 # follows same approach as in FIGURE 7
-cong.pars.b.df.2 <- as.data.frame(summary(cong.fit.b.rstan, c("beta", "lambda", "theta_p"))$summary)
+cong.pars.b.df.2 <- as.data.frame(summary(cong.fit.b.olre.rs, c("beta", "lambda", "theta_p"))$summary)
 cong.pars.b.df.2 <- cong.pars.b.df.2[, c(1, 6)]
 cong.pars.b.df.2$variable <- rownames(cong.pars.b.df.2)
 cong.pars.b.df.2 <- as.data.table(cong.pars.b.df.2)
@@ -563,11 +612,12 @@ fig.capt <-
   "Indicator codes: 1 = Cooking fuel, 2 = Sanitation, 3 = Drinking water, 4 = Electricity, 5 = Housing, 6 = Assets"
 cong.pars.b.df.2.res %>%
   ggplot(aes(theta * -1, prob, group = name, label = item)) +
-  geom_line(aes(alpha = lambda)) + geom_rug(y = NA, alpha = .1) +
+  geom_line(aes(alpha = lambda, size = lambda)) + geom_rug(y = NA, alpha = .1) +
   geom_dl(aes(alpha = lambda), method = "first.points",
           data = filter(cong.pars.b.df.2.res, item %in% c(1, 2, 3, 5, 6))) +
   geom_dl(aes(alpha = lambda), method = "last.points", data = filter(cong.pars.b.df.2.res, item == 4)) +
-  scale_alpha(range = c(.2, 1)) + guides(alpha = FALSE) +
+  scale_alpha(range = c(.2, 1)) + scale_size(range = c(.25, 1)) +
+  guides(alpha = FALSE, size = FALSE) +
   scale_y_continuous(labels = percent_format()) +
   theme(panel.grid.minor.y = element_blank(), axis.title.y = element_blank()) +
   labs(title = "Expected prevalence of deprivation by indicator",
@@ -577,7 +627,7 @@ ggsave(paste0(print.images, "12_cong_eff_beta.pdf"), width = 6.5, height = 4)
 
 # FIGURE 13 ----
 # Extract country averages: should 24000 by 101 countries
-dim(theta.c.b <- as.data.frame(cong.fit.b.rstan, "theta_p"))
+dim(theta.c.b <- as.data.frame(cong.fit.b.olre.rs, "theta_p"))
 # Calculate % each country has bottom 30 scores
 ret.c.b <- rowMeans(apply(theta.c.b, 1, function (xs) {
   top.30 <- sort(xs, decreasing = TRUE)[1:30]
@@ -592,11 +642,11 @@ ret.c.b$ID <- 1:nrow(ret.c.b)
 
 # Number of countries with >99% of bottom 30 score
 sum(ret.c.b$prob.30 > .99)
-# [1] 20
+# [1] 18
 sum(ret.c.b$prob.30 > .95)  # 95%
-# [1] 24
+# [1] 21
 sum(ret.c.b$prob.30 > .90)  # 90%
-# [1] 26
+# [1] 24
 sum(ret.c.b$prob.30 > .50)  # 50%
 # [1] 31
 
@@ -605,7 +655,7 @@ ret.c.b %>%
   geom_hline(yintercept = c(.5, .8, .9, .95), size = .25, linetype = 2, alpha = .25) +
   geom_text_repel(data = filter(ret.c.b, prob.30 > .5 & prob.30 <= .95), nudge_x = .5, segment.alpha = .25) +
   geom_text_repel(aes(label = percent(prob.30, 1)),
-                  data = filter(ret.c.b, prob.30 > .5 & prob.30 <= .8), nudge_x = -.1, segment.alpha = .25) +
+                  data = filter(ret.c.b, prob.30 > .5 & prob.30 <= .8), nudge_x = -.2, segment.alpha = .25) +
   annotate("text", x = 1, y = .95, label = "95%") +
   scale_y_continuous(labels = percent_format(), breaks = c(0, .5, .8, .9, 1)) + theme_classic() +
   scale_shape_manual(values = c(4, 1)) +
@@ -617,124 +667,144 @@ ret.c.b %>%
 ggsave(paste0(print.images, "13_bottom_30_cong_beta.pdf"), width = 6.5, height = 4)
 
 # Comparing country 81 and 82 posterior averages
-theta.9581 <- as.data.frame(cong.fit.b.rstan, c("theta_p[95]", "theta_p[81]"))
+theta.9581 <- as.data.frame(cong.fit.b.olre.rs, c("theta_p[95]", "theta_p[81]"))
 mean(theta.9581[, 1] > theta.9581[, 2])
-# [1] 0.5447083
-theta.8182 <- as.data.frame(cong.fit.b.rstan, c("theta_p[81]", "theta_p[82]"))
-mean(theta.8182[, 1] > theta.8182[, 2])  # 81 only marginally higher probability than 82
-# [1] 0.5157083
+# [1] 0.480875
+theta.8382 <- as.data.frame(cong.fit.b.olre.rs, c("theta_p[83]", "theta_p[82]"))
+mean(theta.8382[, 1] > theta.8382[, 2])  # 81 only marginally higher probability than 82
+# [1] 0.5343333
 
 # APPENDIX CONTENT ----
 
 # Rankplots for congeneric model, Gaussian
-mcmc_rank_overlay(cong.fit.ln.rstan, regex_pars = c("alpha", "beta", "lambda", "sigma"),
+mcmc_rank_overlay(cong.fit.ln.rs, regex_pars = c("alpha", "beta", "lambda", "sigma"),
                   ref_line = TRUE)
 ggsave(paste0(print.images, "app_01_rank_gauss_cong.pdf"), height = 6, width = 8)
 # Rankplots for congeneric model, Beta
-mcmc_rank_overlay(cong.fit.b.rstan, regex_pars = c("i_means", "lambda", "sigma"),
+mcmc_rank_overlay(cong.fit.b.olre.rs, regex_pars = c("i_means", "lambda", "olre_sd"),
                   ref_line = TRUE)
 ggsave(paste0(print.images, "app_02_rank_beta_cong.pdf"), height = 6, width = 8)
 
 # Posterior predictive for congeneric CFA as regression (Gaussian)
-G.cong.ln <- as.data.frame(cong.fit.ln.rstan, paste0("yhat"))
+G.cong.ln <- as.data.frame(cong.fit.ln.rs, paste0("yhat"))
 # Should be 100 samples by 603 responses
 dim(G.cong.ln <- G.cong.ln[sample(1:nrow(G.cong.ln), 100), ])
+G.cong.ln <- data.frame(item = X$item_n, response = X$response.01, t(G.cong.ln)) %>%
+  pivot_longer(contains("X"), names_pattern = "X(.*)")
 
-data.frame(item = X$item_n, response = X$response.01, t(G.cong.ln)) %>%
-  pivot_longer(contains("X"), names_pattern = "X(.*)") %>%
+G.cong.ln %>%
   ggplot(aes(response)) + facet_wrap(~ item, scales = "free") +
   scale_x_continuous(labels = percent_format(), name = "Distribution of prevalence") +
   geom_density(aes(value, group = name), fill = NA, col = "darkgrey") +
-  geom_density(col = 1, fill = NA) +
+  geom_density(col = 1, fill = NA, data = filter(G.cong.ln, name == min(as.integer(name)))) +
   theme_classic() +
   theme(strip.background = element_blank())
 ggsave(paste0(print.images, "app_03_ppc_gauss_cong.pdf"), height = 4, width = 6)
 
+# Posterior predictive for congeneric beta CFA (NO OLRE) as regression (Equation 9)
+# Extract predicted outcomes: 100 samples randomly drawn from 24000 samples
+G.cong.beta <- as.data.frame(cong.fit.b.rs, "yhat")
+# Should be 100 samples by 603 responses
+dim(G.cong.beta <- G.cong.beta[sample(1:nrow(G.cong.beta), 100), ])
+G.cong.beta <- data.frame(item = X$item_n, response = X$response.01, t(G.cong.beta)) %>%
+  pivot_longer(contains("X"), names_pattern = "X(.*)")
+
+G.cong.beta %>%
+  ggplot(aes(response)) + facet_wrap(~ item, scales = "free") +
+  scale_x_continuous(labels = percent_format(), name = "Distribution of prevalence") +
+  geom_density(aes(value, group = name), fill = NA, col = "darkgrey") +
+  geom_density(col = 1, fill = NA, data = filter(G.cong.beta, name == min(as.integer(name)))) +
+  theme_classic() +
+  theme(strip.background = element_blank())
+ggsave(paste0(print.images, "app_04_ppc_beta_cong.pdf"), width = 6.5, height = 4)
+
 # More efficient estimation (of beta congeneric model) via "marginal likelihood" ----
 
 # Compile Stan model
-saveRDS(cmdstan_model(file.path(paste0(stan.scripts, "cong_ln_beta_sample_size_marg.stan"))),
-        paste0(stan.scripts, "cong_ln_beta_sample_size_marg.rds"))
-(cong.mod.b.m <- readRDS(paste0(stan.scripts, "cong_ln_beta_sample_size_marg.rds")))
-# Same configuration settings as Gaussian model
+cong.mod.b.m <- cmdstan_model(file.path(paste0(stan.scripts, "cong_ln_beta_marg.stan")))
+# Same configuration settings as Gaussian model BUT 1K post-warmup samples / chain
 cong.fit.b.m <- cong.mod.b.m$sample(
-  data = data.b, seed = 12345, num_warmup = 1e3,
-  num_samples = 1e3, num_chains = 4, num_cores = 4)
+  data = data.b, seed = 12345, iter_warmup = 1e3,
+  iter_sampling = 1e3, chains = 8, parallel_chains = 8)
 
 cong.fit.b.m$cmdstan_diagnose()
-cong.fit.b.m.rstan <- read_stan_csv(cong.fit.b.m$output_files())
+cong.fit.b.m.rs <- read_stan_csv(cong.fit.b.m$output_files())
 
-print(cong.fit.b.m.rstan, c("latent_mv"), include = FALSE)
-#               mean se_mean    sd    2.5%     25%     50%     75%   97.5% n_eff Rhat
-# alpha        -0.92    0.01  0.40   -1.72   -1.17   -0.92   -0.67   -0.10  3149    1
-# sigma_beta    0.88    0.01  0.32    0.47    0.67    0.81    1.01    1.69  2466    1
-# beta[1]       0.02    0.00  0.19   -0.35   -0.10    0.02    0.15    0.40  4635    1
-# beta[2]      -0.43    0.00  0.15   -0.73   -0.53   -0.43   -0.33   -0.13  4814    1
-# beta[3]      -1.22    0.00  0.12   -1.47   -1.30   -1.22   -1.14   -0.99  3406    1
-# beta[4]      -1.53    0.00  0.24   -2.00   -1.68   -1.52   -1.38   -1.06  5266    1
-# beta[5]      -0.53    0.00  0.14   -0.82   -0.63   -0.53   -0.44   -0.26  4052    1
-# beta[6]      -1.96    0.00  0.15   -2.25   -2.06   -1.96   -1.86   -1.66  4035    1
-# lambda[1]     1.66    0.00  0.16    1.36    1.54    1.65    1.76    2.00  2300    1
-# lambda[2]     1.34    0.00  0.12    1.11    1.25    1.33    1.41    1.59  4013    1
-# lambda[3]     0.95    0.00  0.10    0.77    0.88    0.94    1.01    1.14  3198    1
-# lambda[4]     2.24    0.00  0.17    1.92    2.12    2.23    2.35    2.60  4361    1
-# lambda[5]     1.17    0.00  0.12    0.95    1.09    1.17    1.25    1.43  2763    1
-# lambda[6]     1.23    0.00  0.11    1.02    1.15    1.22    1.30    1.47  3789    1
-# prec[1]       5.73    0.02  0.92    4.09    5.09    5.65    6.31    7.70  2830    1
-# prec[2]      10.80    0.03  1.67    7.75    9.61   10.71   11.88   14.28  4396    1
-# prec[3]      13.39    0.03  1.99    9.67   11.98   13.35   14.68   17.51  3930    1
-# prec[4]      69.13    0.66 21.13   35.96   54.05   66.48   81.41  116.92  1033    1
-# prec[5]       6.85    0.02  0.99    5.05    6.17    6.80    7.47    8.96  3819    1
-# prec[6]      17.80    0.05  2.96   12.49   15.73   17.61   19.64   24.14  3051    1
-# i_means[1]    0.51    0.00  0.05    0.41    0.47    0.51    0.54    0.60  4629    1
-# i_means[2]    0.39    0.00  0.04    0.32    0.37    0.39    0.42    0.47  4821    1
-# i_means[3]    0.23    0.00  0.02    0.19    0.21    0.23    0.24    0.27  3396    1
-# i_means[4]    0.18    0.00  0.03    0.12    0.16    0.18    0.20    0.26  5271    1
-# i_means[5]    0.37    0.00  0.03    0.31    0.35    0.37    0.39    0.44  4065    1
-# i_means[6]    0.12    0.00  0.02    0.10    0.11    0.12    0.14    0.16  3987    1
-# sigma[1]      0.19    0.00  0.01    0.17    0.18    0.19    0.20    0.22  2599    1
-# sigma[2]      0.14    0.00  0.01    0.12    0.14    0.14    0.15    0.17  4256    1
-# sigma[3]      0.11    0.00  0.01    0.10    0.10    0.11    0.12    0.13  3369    1
-# sigma[4]      0.05    0.00  0.01    0.03    0.04    0.05    0.05    0.07  1136    1
-# sigma[5]      0.17    0.00  0.01    0.15    0.17    0.17    0.18    0.20  3652    1
-# sigma[6]      0.08    0.00  0.01    0.06    0.07    0.08    0.08    0.10  2943    1
-# lp__       1454.85    0.59 19.22 1416.57 1441.84 1455.39 1468.12 1490.92  1063    1
+print(cong.fit.b.m.rs, c("latent_mv", "lp__"), include = FALSE)
+#             mean se_mean    sd  2.5%   25%   50%   75%  97.5% n_eff Rhat
+# alpha      -0.92    0.00  0.40 -1.70 -1.16 -0.92 -0.67  -0.09  7130    1
+# sigma_beta  0.88    0.00  0.29  0.48  0.68  0.83  1.03   1.61  5362    1
+# beta[1]     0.02    0.00  0.19 -0.34 -0.11  0.02  0.15   0.40  9958    1
+# beta[2]    -0.43    0.00  0.15 -0.73 -0.53 -0.43 -0.33  -0.14 11038    1
+# beta[3]    -1.22    0.00  0.12 -1.47 -1.30 -1.22 -1.14  -1.00  7947    1
+# beta[4]    -1.52    0.00  0.23 -1.97 -1.68 -1.52 -1.37  -1.08 11210    1
+# beta[5]    -0.53    0.00  0.14 -0.81 -0.63 -0.53 -0.44  -0.25  7745    1
+# beta[6]    -1.96    0.00  0.15 -2.25 -2.05 -1.96 -1.86  -1.68  8103    1
+# lambda[1]   1.66    0.00  0.17  1.35  1.55  1.65  1.77   2.01  5761    1
+# lambda[2]   1.34    0.00  0.12  1.11  1.25  1.33  1.42   1.61  7767    1
+# lambda[3]   0.95    0.00  0.10  0.77  0.88  0.94  1.01   1.15  6173    1
+# lambda[4]   2.24    0.00  0.18  1.93  2.12  2.24  2.36   2.62  9185    1
+# lambda[5]   1.17    0.00  0.12  0.95  1.09  1.17  1.25   1.43  6435    1
+# lambda[6]   1.23    0.00  0.12  1.02  1.15  1.22  1.30   1.47  7277    1
+# prec[1]     5.73    0.01  0.93  4.08  5.08  5.68  6.31   7.71  5582    1
+# prec[2]    10.81    0.02  1.66  7.93  9.63 10.71 11.85  14.39  8681    1
+# prec[3]    13.41    0.02  2.01  9.77 12.00 13.29 14.68  17.62  7202    1
+# prec[4]    68.92    0.45 21.39 36.17 53.29 65.83 81.40 118.41  2216    1
+# prec[5]     6.81    0.01  1.00  5.02  6.12  6.75  7.45   8.94  6729    1
+# prec[6]    17.78    0.04  2.91 12.62 15.71 17.57 19.67  23.84  6437    1
+# i_means[1]  0.51    0.00  0.05  0.42  0.47  0.51  0.54   0.60  9965    1
+# i_means[2]  0.39    0.00  0.04  0.32  0.37  0.39  0.42   0.46 11048    1
+# i_means[3]  0.23    0.00  0.02  0.19  0.21  0.23  0.24   0.27  7960    1
+# i_means[4]  0.18    0.00  0.03  0.12  0.16  0.18  0.20   0.25 11034    1
+# i_means[5]  0.37    0.00  0.03  0.31  0.35  0.37  0.39   0.44  7724    1
+# i_means[6]  0.12    0.00  0.02  0.10  0.11  0.12  0.13   0.16  8008    1
+# sigma[1]    0.19    0.00  0.01  0.17  0.18  0.19  0.20   0.22  5297    1
+# sigma[2]    0.14    0.00  0.01  0.12  0.14  0.14  0.15   0.16  8819    1
+# sigma[3]    0.11    0.00  0.01  0.09  0.10  0.11  0.12   0.13  6611    1
+# sigma[4]    0.05    0.00  0.01  0.03  0.04  0.05  0.05   0.07  2583    1
+# sigma[5]    0.17    0.00  0.01  0.15  0.17  0.17  0.18   0.20  6474    1
+# sigma[6]    0.08    0.00  0.01  0.06  0.07  0.08  0.08   0.09  6042    1
+
+mcmc_rank_overlay(cong.fit.b.m.rs, regex_pars = c("i_means", "lambda", "sigma"),
+                  ref_line = TRUE)
 
 # R Session Info (Contains exact package versions and system information) ----
-sessionInfo()  # Output is truncated to highlight important elements
-# R version 3.6.0 (2019-04-26)
+sessionInfo()
+# R version 4.0.3 (2020-10-10)
 # Platform: x86_64-pc-linux-gnu (64-bit)
-# Running under: Ubuntu 18.04.5 LTS
+# Running under: Pop!_OS 20.10
 # 
 # Matrix products: default
-# BLAS:   /usr/lib/x86_64-linux-gnu/blas/libblas.so.3.7.1
-# LAPACK: /usr/lib/x86_64-linux-gnu/lapack/liblapack.so.3.7.1
+# BLAS:   /usr/lib/x86_64-linux-gnu/blas/libblas.so.3.9.0
+# LAPACK: /usr/lib/x86_64-linux-gnu/lapack/liblapack.so.3.9.0
 # 
 # locale:
-#   [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C               LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
-# [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8    LC_PAPER=en_US.UTF-8       LC_NAME=C                 
-# [9] LC_ADDRESS=C               LC_TELEPHONE=C             LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+#  [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C               LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
+#  [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8    LC_PAPER=en_US.UTF-8       LC_NAME=C                 
+#  [9] LC_ADDRESS=C               LC_TELEPHONE=C             LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
 # 
 # attached base packages:
-#   [1] stats     graphics  grDevices utils     datasets  methods   base     
+#  [1] stats     graphics  grDevices utils     datasets  methods   base     
 # 
 # other attached packages:
-#   [1] cmdstanr_0.0.0.9000     rstan_2.19.2            StanHeaders_2.19.0      bayesplot_1.7.0        
-# [5] ggrepel_0.8.1           directlabels_2018.05.22 ggplot2_3.2.1           latex2exp_0.4.0        
-# [9] patchwork_0.0.1         scales_1.1.1            tidyr_1.1.1             dplyr_1.0.2            
-# [13] glmmTMB_1.0.0           lavaan_0.6-6            psych_2.0.7             data.table_1.12.6      
+#  [1] ggforce_0.3.2          cmdstanr_0.1.0         rstan_2.21.2           StanHeaders_2.21.0-5   bayesplot_1.7.2       
+#  [6] ggrepel_0.8.2          directlabels_2020.6.17 ggplot2_3.3.2          latex2exp_0.4.0        patchwork_1.0.1       
+# [11] scales_1.1.1           tidyr_1.1.2            dplyr_1.0.2            glmmTMB_1.0.2.1        lavaan_0.6-6          
+# [16] psych_2.0.7            data.table_1.13.0     
 # 
 # loaded via a namespace (and not attached):
-#   [1] jsonlite_1.7.0     splines_3.6.0      assertthat_0.2.1   posterior_0.0.2    stats4_3.6.0       pbivnorm_0.6.0    
-# [7] backports_1.1.8    pillar_1.4.6       lattice_0.20-41    glue_1.4.1         quadprog_1.5-8     digest_0.6.25     
-# [13] checkmate_2.0.0    minqa_1.2.4        colorspace_1.4-1   sandwich_2.5-1     Matrix_1.2-18      plyr_1.8.6        
-# [19] pkgconfig_2.0.3    purrr_0.3.3        xtable_1.8-4       mvtnorm_1.0-12     processx_3.4.2     lme4_1.1-21       
-# [25] emmeans_1.5.0      tibble_3.0.1       farver_2.0.1       generics_0.0.2     ellipsis_0.3.0     TH.data_1.0-10    
-# [31] withr_2.2.0        TMB_1.7.16         lazyeval_0.2.2     cli_2.0.2          mnormt_1.5-5       survival_3.2-3    
-# [37] magrittr_1.5       crayon_1.3.4       estimability_1.3   ps_1.3.4           fansi_0.4.1        nlme_3.1-142      
-# [43] MASS_7.3-52        pkgbuild_1.0.6     tools_3.6.0        loo_2.1.0          prettyunits_1.1.1  lifecycle_0.2.0   
-# [49] matrixStats_0.55.0 multcomp_1.4-13    stringr_1.4.0      munsell_0.5.0      callr_3.3.2        packrat_0.5.0     
-# [55] compiler_3.6.0     rlang_0.4.7        grid_3.6.0         nloptr_1.2.2.2     ggridges_0.5.1     rstudioapi_0.11   
-# [61] labeling_0.3       boot_1.3-25        gtable_0.3.0       codetools_0.2-16   abind_1.4-5        inline_0.3.15     
-# [67] reshape2_1.4.4     R6_2.4.1           gridExtra_2.3      zoo_1.8-8          stringi_1.4.6      parallel_3.6.0    
-# [73] Rcpp_1.0.4.6       vctrs_0.3.2        tidyselect_1.1.0   coda_0.19-3       
+#  [1] nlme_3.1-149       matrixStats_0.56.0 bit64_0.9-7.1      backports_1.1.10   tools_4.0.3        TMB_1.7.18        
+#  [7] utf8_1.1.4         R6_2.4.1           colorspace_1.4-1   withr_2.3.0        tidyselect_1.1.0   gridExtra_2.3     
+# [13] prettyunits_1.1.1  mnormt_2.0.1       processx_3.4.4     emmeans_1.5.1      bit_1.1-15.2       curl_4.3          
+# [19] compiler_4.0.3     cli_2.1.0          sandwich_2.5-1     posterior_0.1.2    labeling_0.4.2     checkmate_2.0.0   
+# [25] mvtnorm_1.1-1      quadprog_1.5-8     ggridges_0.5.2     callr_3.5.1        stringr_1.4.0      digest_0.6.27     
+# [31] pbivnorm_0.6.0     minqa_1.2.4        pkgconfig_2.0.3    lme4_1.1-23        rlang_0.4.8        rstudioapi_0.11   
+# [37] generics_0.0.2     farver_2.0.3       zoo_1.8-8          jsonlite_1.7.1     vroom_1.2.1        inline_0.3.15     
+# [43] magrittr_1.5       loo_2.3.1          Matrix_1.2-18      Rcpp_1.0.5         munsell_0.5.0      fansi_0.4.1       
+# [49] abind_1.4-5        lifecycle_0.2.0    stringi_1.5.3      multcomp_1.4-13    MASS_7.3-53        pkgbuild_1.1.0    
+# [55] plyr_1.8.6         grid_4.0.3         parallel_4.0.3     crayon_1.3.4       lattice_0.20-41    splines_4.0.3     
+# [61] tmvnsim_1.0-2      ps_1.4.0           pillar_1.4.6       boot_1.3-25        estimability_1.3   reshape2_1.4.4    
+# [67] codetools_0.2-16   stats4_4.0.3       glue_1.4.2         V8_3.3.0           RcppParallel_5.0.2 tweenr_1.0.1      
+# [73] vctrs_0.3.4        nloptr_1.2.2.2     polyclip_1.10-0    gtable_0.3.0       purrr_0.3.4        assertthat_0.2.1  
+# [79] xtable_1.8-4       coda_0.19-3        survival_3.2-7     tibble_3.0.4       statmod_1.4.34     TH.data_1.0-10    
+# [85] ellipsis_0.3.1    
