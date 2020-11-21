@@ -17,7 +17,7 @@ X %>%
         panel.spacing.x = unit(.5, "cm"), panel.grid.minor = element_blank(),
         axis.ticks = element_blank()) +
   labs(y = "Number of countries")
-ggsave(paste0(print.images, "01_deprivation.pdf"), width = 6, height = 4)
+ggsave(paste0(print.images, "01_deprivation.pdf"), width = 6, height = 3)
 
 # MODELLING ----
 
@@ -88,10 +88,10 @@ X %>%
   scale_y_continuous(labels = percent_format()) +
   scale_x_continuous(limits = c(-1.4, 2.2)) +
   geom_rug(y = NA, alpha = .1) +
-  geom_dl(method = "first.points", alpha = .5) +
+  geom_dl(alpha = .5, method = list("first.points", cex = .7)) +
   labs(x = "Standardized average for 101 countries (k_c^')",
-       y = "Expected prevalence of deprivation by indicator")
-ggsave(paste0(print.images, "02_te_eff.pdf"), width = 6.5, height = 4)
+       y = "Expected prevalence of deprivation")
+ggsave(paste0(print.images, "02_te_eff.pdf"), width = 6.5, height = 3)
 
 # FIGURE 3 ----
 # function to transform mean & sample size to a-b param of beta dist.
@@ -123,7 +123,7 @@ bpx <- seq(1e-2, 1 - 1e-2, 1e-4)
      scale_x_continuous(labels = percent_format(), name = "mean") +
      theme_classic() +
      scale_y_continuous(name = "density"))
-ggsave(paste0(print.images, "03_beta_dist_ex.pdf"), width = 6.5, height = 4)
+ggsave(paste0(print.images, "03_beta_dist_ex.pdf"), width = 6.5, height = 2.5)
 
 # tau-equivalent model (beta dist.) ----
 # Rerun tau-equiv model using within 0-1 outcome
@@ -157,11 +157,12 @@ data.frame(name = X$item_abb, ave = X$ave.te.b, fitted_unc = predict(te.reg.beta
   mutate(cons = ifelse(cons == "con", "Probabilities", "Unconstrained prediction")) %>%
   ggplot(aes(ave, fitted, group = name, label = name)) + geom_line() + facet_wrap(~ cons, scales = "free") +
   scale_x_continuous(limits = c(-1.6, 2.5)) +
-  geom_dl(method = "last.points", alpha = .5) +
+  geom_dl(alpha = .5, method = list("last.points", cex = .7)) +
+  # geom_dl(method = "last.points", alpha = .5) +
   labs(x = "Standardized average for 101 countries (k_c^')",
-       y = "Expected deprivation by indicator") +
+       y = "Expected deprivation") +
   theme(strip.background = element_blank())
-ggsave(paste0(print.images, "04_te_eff_beta.pdf"), width = 6.5, height = 4)
+ggsave(paste0(print.images, "04_te_eff_beta.pdf"), width = 6.5, height = 3)
 
 # FIGURE 5 ----
 (data.frame(x = seq(0, .5, 1e-4),
