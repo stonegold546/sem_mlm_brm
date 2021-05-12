@@ -469,8 +469,8 @@ ggplot(ppc.res, aes(value + .0, reorder(item, -item))) +
   theme(legend.position = "top")
 
 ppc.dist <- data.table(x = X$response.l)
-ppc.dist <- cbind(ppc.dist, t(apply(G.cong, 2, quantile, c(.25, .75))))
-ppc.dist <- cbind(ppc.dist, t(apply(G.cong.j, 2, quantile, c(.25, .75))))
+ppc.dist <- cbind(ppc.dist, t(apply(G.cong.f, 2, quantile, c(.25, .75))))
+ppc.dist <- cbind(ppc.dist, t(apply(G.cong.f.j, 2, quantile, c(.25, .75))))
 setnames(ppc.dist, 2:5, c("ll", "ul", "llj", "ulj"))
 ppc.dist[order(x), id := 1:.N]
 ppc.dist
@@ -489,39 +489,35 @@ ggplot(ppc.dist, aes(id, x)) +
 sessionInfo()
 # R version 4.0.3 (2020-10-10)
 # Platform: x86_64-pc-linux-gnu (64-bit)
-# Running under: Pop!_OS 20.10
+# Running under: Pop!_OS 20.04 LTS
 # 
 # Matrix products: default
-# BLAS:   /usr/lib/x86_64-linux-gnu/blas/libblas.so.3.9.0
-# LAPACK: /usr/lib/x86_64-linux-gnu/lapack/liblapack.so.3.9.0
+# BLAS:   /usr/lib/x86_64-linux-gnu/atlas/libblas.so.3.10.3
+# LAPACK: /usr/lib/x86_64-linux-gnu/atlas/liblapack.so.3.10.3
 # 
 # locale:
-#  [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C               LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
-#  [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8    LC_PAPER=en_US.UTF-8       LC_NAME=C                 
-#  [9] LC_ADDRESS=C               LC_TELEPHONE=C             LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+# [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C               LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
+# [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8    LC_PAPER=en_US.UTF-8       LC_NAME=C                 
+# [9] LC_ADDRESS=C               LC_TELEPHONE=C             LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
 # 
 # attached base packages:
-#  [1] stats     graphics  grDevices utils     datasets  methods   base     
+# [1] stats     graphics  grDevices utils     datasets  methods   base     
 # 
 # other attached packages:
-#  [1] ggforce_0.3.2          cmdstanr_0.1.0         rstan_2.21.2           StanHeaders_2.21.0-5   bayesplot_1.7.2       
-#  [6] ggrepel_0.8.2          directlabels_2020.6.17 ggplot2_3.3.2          latex2exp_0.4.0        patchwork_1.0.1       
-# [11] scales_1.1.1           tidyr_1.1.2            dplyr_1.0.2            glmmTMB_1.0.2.1        lavaan_0.6-6          
-# [16] psych_2.0.7            data.table_1.13.0     
+# [1] cmdstanr_0.2.2         rstan_2.21.3           StanHeaders_2.21.0-7   bayesplot_1.7.2        ggrepel_0.8.2         
+# [6] directlabels_2020.6.17 ggforce_0.3.2          ggplot2_3.3.3          latex2exp_0.4.0        patchwork_1.1.0       
+# [11] scales_1.1.1           lavaan_0.6-7           psych_2.0.9            data.table_1.14.0     
 # 
 # loaded via a namespace (and not attached):
-#  [1] nlme_3.1-149       matrixStats_0.56.0 bit64_0.9-7.1      backports_1.1.10   tools_4.0.3        TMB_1.7.18        
-#  [7] utf8_1.1.4         R6_2.4.1           colorspace_1.4-1   withr_2.3.0        tidyselect_1.1.0   gridExtra_2.3     
-# [13] prettyunits_1.1.1  mnormt_2.0.1       processx_3.4.4     emmeans_1.5.1      bit_1.1-15.2       curl_4.3          
-# [19] compiler_4.0.3     cli_2.1.0          sandwich_2.5-1     posterior_0.1.2    labeling_0.4.2     checkmate_2.0.0   
-# [25] mvtnorm_1.1-1      quadprog_1.5-8     ggridges_0.5.2     callr_3.5.1        stringr_1.4.0      digest_0.6.27     
-# [31] pbivnorm_0.6.0     minqa_1.2.4        pkgconfig_2.0.3    lme4_1.1-23        rlang_0.4.8        rstudioapi_0.11   
-# [37] generics_0.0.2     farver_2.0.3       zoo_1.8-8          jsonlite_1.7.1     vroom_1.2.1        inline_0.3.15     
-# [43] magrittr_1.5       loo_2.3.1          Matrix_1.2-18      Rcpp_1.0.5         munsell_0.5.0      fansi_0.4.1       
-# [49] abind_1.4-5        lifecycle_0.2.0    stringi_1.5.3      multcomp_1.4-13    MASS_7.3-53        pkgbuild_1.1.0    
-# [55] plyr_1.8.6         grid_4.0.3         parallel_4.0.3     crayon_1.3.4       lattice_0.20-41    splines_4.0.3     
-# [61] tmvnsim_1.0-2      ps_1.4.0           pillar_1.4.6       boot_1.3-25        estimability_1.3   reshape2_1.4.4    
-# [67] codetools_0.2-16   stats4_4.0.3       glue_1.4.2         V8_3.3.0           RcppParallel_5.0.2 tweenr_1.0.1      
-# [73] vctrs_0.3.4        nloptr_1.2.2.2     polyclip_1.10-0    gtable_0.3.0       purrr_0.3.4        assertthat_0.2.1  
-# [79] xtable_1.8-4       coda_0.19-3        survival_3.2-7     tibble_3.0.4       statmod_1.4.34     TH.data_1.0-10    
-# [85] ellipsis_0.3.1    
+# [1] Rcpp_1.0.6         lattice_0.20-41    prettyunits_1.1.1  ps_1.5.0           digest_0.6.27      assertthat_0.2.1  
+# [7] utf8_1.2.1         V8_3.4.0           R6_2.5.0           plyr_1.8.6         backports_1.2.1    ggridges_0.5.2    
+# [13] stats4_4.0.3       pillar_1.6.0       rlang_0.4.11       curl_4.3.1         callr_3.5.1        Matrix_1.2-18     
+# [19] checkmate_2.0.0    pbivnorm_0.6.0     splines_4.0.3      labeling_0.4.2     stringr_1.4.0      loo_2.4.1         
+# [25] polyclip_1.10-0    munsell_0.5.0      compiler_4.0.3     pkgconfig_2.0.3    mnormt_2.0.2       pkgbuild_1.2.0    
+# [31] tmvnsim_1.0-2      mgcv_1.8-33        tidyselect_1.1.1   tibble_3.1.1       gridExtra_2.3      codetools_0.2-16  
+# [37] matrixStats_0.58.0 quadprog_1.5-8     fansi_0.4.2        crayon_1.4.1       dplyr_1.0.5        withr_2.4.2       
+# [43] MASS_7.3-53        grid_4.0.3         nlme_3.1-149       jsonlite_1.7.2     gtable_0.3.0       lifecycle_1.0.0   
+# [49] DBI_1.1.0          magrittr_2.0.1     RcppParallel_5.0.2 cli_2.5.0          stringi_1.5.3      farver_2.1.0      
+# [55] ellipsis_0.3.2     generics_0.1.0     vctrs_0.3.8        tools_4.0.3        glue_1.4.2         tweenr_1.0.1      
+# [61] purrr_0.3.4        processx_3.4.5     parallel_4.0.3     inline_0.3.17      colorspace_2.0-1  
+

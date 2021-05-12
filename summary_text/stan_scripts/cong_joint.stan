@@ -28,8 +28,7 @@ parameters {
   real ln_alpha;
   real<lower = 0> ln_sigma_beta;
   vector[Ni] ln_sigma2;
-  // vector<lower = 0>[Ni] ln_lambda;
-  real<lower = 0> ln_lambda;
+  vector<lower = 0>[Ni] ln_lambda;
   vector[2] Theta[Np];
   real<lower = 0, upper = 1> r_tr;
 }
@@ -60,8 +59,7 @@ model {
     vector[N] sigma_y;
     vector[N] mu;
     for (i in 1:N) {
-      // sigma_y[i] = sqrt(exp(ln_sigma2[item_id[i]] + ln_lambda[item_id[i]] * Theta[resp_id[i], 2]));
-      sigma_y[i] = sqrt(exp(ln_sigma2[item_id[i]] + ln_lambda * Theta[resp_id[i], 2]));
+      sigma_y[i] = sqrt(exp(ln_sigma2[item_id[i]] + ln_lambda[item_id[i]] * Theta[resp_id[i], 2]));
       mu[i] = beta[item_id[i]] + lambda[item_id[i]] * Theta[resp_id[i], 1];
     }
     y ~ normal(mu, sigma_y);
@@ -77,8 +75,7 @@ generated quantities {
     real sigma_y;
     real mu;
     for (i in 1:max(Nll, Ny)) {
-      // sigma_y = sqrt(exp(ln_sigma2[item_id[i]] + ln_lambda[item_id[i]] * Theta[resp_id[i], 2]));
-      sigma_y = sqrt(exp(ln_sigma2[item_id[i]] + ln_lambda * Theta[resp_id[i], 2]));
+      sigma_y = sqrt(exp(ln_sigma2[item_id[i]] + ln_lambda[item_id[i]] * Theta[resp_id[i], 2]));
       mu = beta[item_id[i]] + lambda[item_id[i]] * Theta[resp_id[i], 1];
       if (Nll > 0) log_lik[i] = normal_lpdf(y[i] | mu, sigma_y);
       if (Ny > 0) yhat[i] = normal_rng(mu, sigma_y);
