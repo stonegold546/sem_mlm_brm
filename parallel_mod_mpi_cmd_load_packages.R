@@ -10,13 +10,11 @@
 library(data.table)  # Fast alternative to data frames
 library(psych)  # Dataset descriptives
 library(lavaan)  # Standard SEM
-library(glmmTMB)  # Multilevel modeling
-library(dplyr)  # Data manipulation
-library(tidyr)  # Data manipulation
 library(scales)  # Formatting outputs
 library(patchwork)  # Adding ggplots together
 library(latex2exp)  # Creating equations using latex
 library(ggplot2)  # Plotting
+library(ggforce)  # extend ggplot
 library(directlabels)  # Direct labeling of ggplots
 library(ggrepel)  # Labeling of lines on ggplot
 theme_set(theme_bw())  # ggplot label
