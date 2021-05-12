@@ -6,3 +6,4 @@
 !/summary_text/stan_scripts/*.stan
 /summary_text/text_clean/*
 /res/*
+parallel_mod_mpi_cmd_submit_old.R
