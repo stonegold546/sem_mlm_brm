@@ -10,6 +10,7 @@
 library(data.table)  # Fast alternative to data frames
 library(psych)  # Dataset descriptives
 library(lavaan)  # Standard SEM
+library(semPlot)  # plot lavaan fit
 library(scales)  # Formatting outputs
 library(patchwork)  # Adding ggplots together
 library(latex2exp)  # Creating equations using latex

@@ -2,6 +2,9 @@
 dat <- read.csv(paste0(data.location, "mpi.csv"))
 colnames(dat)
 
+# order by country
+dat <- dat[order(dat$Country), ]
+
 # Columns 7-12 are living standards data
 describe(dat)
 
@@ -21,7 +24,6 @@ X <- reshape(
 # Add item names
 X$item_n <- factor(X$item, levels = 1:6, labels = gsub(".", " ", colnames(dat)[7:12], fixed = TRUE))
 X$item_t <- paste0("x", X$item)  # Add item id: x1:x6
-X$id <- rep(1:nrow(dat), 6) # Country id
 X <- X[order(X$id), ]  # Sort by country
 X$response <- X$response / 100  # Rescale percentages to 0-1 interval
 X <- X[!is.na(X$response), ]  # Drop missing data, 3 cases
@@ -39,8 +41,8 @@ X$response.01[X$item_n == "Electricity"] <-
 # Check minimum and maximum values again
 aggregate(response.01 ~ item_n, X, function (x) c(min(x), max(x)))
 
-# Transform to logits ----
-X$response.l <- qlogis(X$response.01)
+# Transform to probits ----
+X$response.l <- -qnorm(X$response.01)
 
 # Extend original dataset with 0-1 interval data ----
 Xw <- reshape(X[, c("Country", "item", "response.l")], direction = "wide",
