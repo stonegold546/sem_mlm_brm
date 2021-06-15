@@ -4,5 +4,7 @@
 .Rproj.user
 /summary_text/stan_scripts/*
 !/summary_text/stan_scripts/*.stan
+/summary_text/stan_scripts/cong_gp.stan
 /summary_text/text_clean/*
+/summary_text/mpi_dat/mpi_2019.csv
 /res
